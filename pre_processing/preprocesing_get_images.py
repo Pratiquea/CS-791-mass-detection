@@ -190,7 +190,6 @@ class PreProcessing:
 
                     # if count > 3:
                     #     break
-                    count += 1
                     # Check if there's enough space on the disk
                     a = subprocess.Popen(cmd,stdout=subprocess.PIPE)
                     space_left = a.communicate()[0].decode('utf-8').split()[10]
@@ -353,10 +352,7 @@ class PreProcessing:
                             continue
 
                     plt_cropped_img = copy.deepcopy(cropped_img)
-                    # print("bbox = {}".format(bbox_coordinates[0]))
-                    # print("bbox = {}".format(bbox_coordinates[1]))
-                    # print("bbox = {}".format(bbox_coordinates[2]))
-                    # print("bbox = {}".format(bbox_coordinates[3]))
+                    # rand_arr = np.random.randint(low=-800, high=800, size=(2,))
 
                     if self.plot:
                         fig,ax1,ax2, ax3 = None, None, None, None
@@ -374,6 +370,7 @@ class PreProcessing:
                         mng.resize(*varrr)
                         
                         plt_cropped_img = cv2.rectangle(plt_cropped_img.astype('uint8'), (int(bbox_coordinates[0]),int(bbox_coordinates[1])), (int(bbox_coordinates[2]+bbox_coordinates[0]),int(bbox_coordinates[3]+bbox_coordinates[1])), (255,0,0), 10)
+                        # plt_cropped_img = cv2.rectangle(plt_cropped_img.astype('uint8'), (int(bbox_coordinates[0]+rand_arr[0]),int(bbox_coordinates[1]+rand_arr[1])), (int(bbox_coordinates[2]+rand_arr[0]+bbox_coordinates[0]),int(bbox_coordinates[3]+rand_arr[1]+bbox_coordinates[1])), (255,0,0), 10)
                         img_orig_copy = copy.deepcopy(img_orig.astype('uint8'))
                         img_orig = cv2.rectangle(img_orig.astype('uint8'), (int(bbox_orig[0]),int(bbox_orig[1])), (int(bbox_orig[2]+bbox_orig[0]) ,int(bbox_orig[3]+bbox_orig[1]) ), (255,0,0), 10)
 
@@ -400,11 +397,10 @@ class PreProcessing:
                     print("saving image to= {}".format(new_file_path))
                     new_file_name = os.path.join(folder_name, new_file_name)
                     # print("file_name for coco annotiation = {}".format(new_file_name))
-                    cv2.imwrite( new_file_path, cropped_img)
+                    # cv2.imwrite( new_file_path, cropped_img)
+                    count += 1
                     (height, width) = cropped_img.shape
                     # resized = cv2.resize(cropped_img, (int(width/4), int(height/4)))
-                    # cv2.imshow("processed image", resized)
-                    # cv2.waitKey(0)
                     #print(height)
                     # apparently, image_id can't have letter and numbers so...... gotta change each alphabet to its corresponding number
                     # for letter in file_name:
@@ -422,25 +418,27 @@ class PreProcessing:
                         ', "area": ' + str(float(bbox_coordinates[2])*float(bbox_coordinates[3])) + \
                         ', "category_id": ' + str(cate) + '},'
 
-        f.close()
-        f2.close()
-        f3.close()
-        f4.close()
+                    print("count = {}".format(count))
 
-        json_image = json_image[:-1]
-        json_image += '],'
-        json_annotations = json_annotations[:-1]
-        json_annotations += '] }'
-        # print(json_image)
-        # print(json_annotations)
-        # print(i)
-        json_everything = json_categories + json_image + json_annotations
-        # print(json_everything)
-        np.save(os.path.join(self.output_path, 'json_everything.npy'), json_everything)
-        json_object = json.loads(json_everything)
-        # Writing to sample.json
-        with open("sample.json", "w") as outfile:
-            outfile.write(json_everything)
+        # f.close()
+        # f2.close()
+        # f3.close()
+        # f4.close()
+
+        # json_image = json_image[:-1]
+        # json_image += '],'
+        # json_annotations = json_annotations[:-1]
+        # json_annotations += '] }'
+        # # print(json_image)
+        # # print(json_annotations)
+        # # print(i)
+        # json_everything = json_categories + json_image + json_annotations
+        # # print(json_everything)
+        # np.save(os.path.join(self.output_path, 'json_everything.npy'), json_everything)
+        # json_object = json.loads(json_everything)
+        # # Writing to sample.json
+        # with open("sample.json", "w") as outfile:
+        #     outfile.write(json_everything)
 
 
 def main():
@@ -456,7 +454,7 @@ def main():
     
     args = parser.parse_args()
 
-    pre_processing = PreProcessing(args)
+    pre_processing = PreProcessing(args, True)
     pre_processing.run()
 
 if __name__ == "__main__":

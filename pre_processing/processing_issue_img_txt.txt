@@ -1,4 +1,0 @@
-/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/63303252b1fb34780163ab8a47ba89f9/2f48022a49d11be37b6b391fbc5bc47c.dicom
-/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/08d8818f81810c7979df66dccf549932/370f48157f08675de0b49988b7c39622.dicom
-/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/4f0cf40c0bff5919286e16ca59686f4d/758800aab197eb56a28eed6849250800.dicom
-/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/674410c521b869b22e6f826e98fd4db1/f8bfea7bae6392d0db67fddb39dcee32.dicom
