@@ -112,6 +112,11 @@ class ResNet18_CVAM(nn.Module):
         # resnet18 = models.resnet18(weights= ResNet18_Weights)
         resnet18 = models.resnet18(pretrained=True)
         a = list(resnet18.children())
+        print(list(resnet18.layer1[0].children())[0].weight.shape)
+        print(list(resnet18.layer2[0].children())[0].weight.shape)
+        print(list(resnet18.layer3[0].children())[0].weight.shape)
+        print(list(resnet18.layer4[0].children())[0].weight.shape)
+        # print(list(resnet18.layer2))
         self.conv1_1 = a[0]
         self.bn_1 = a[1]
         self.relu_1 = a[2]
@@ -156,9 +161,9 @@ class ResNet18_CVAM(nn.Module):
         self.adaptPool_4 = a[8]
         self.linear_4 = a[9]
 
-        self.cvam1 = CvAM()
-        self.cvam2 = CvAM()
-        self.cvam3 = CvAM()
+        self.cvam1 = CvAM(list(resnet18.layer1[0].children())[0].weight.shape[0])
+        self.cvam2 = CvAM(list(resnet18.layer2[0].children())[0].weight.shape[0])
+        self.cvam3 = CvAM(list(resnet18.layer3[0].children())[0].weight.shape[0])
 
     def forward(self, x_l_cc, x_r_cc, x_l_mlo, x_r_mlo):
         x_l_cc_res = self.conv1_1(x_l_cc)
@@ -206,6 +211,7 @@ class ResNet18_CVAM(nn.Module):
 
         x_l_cc_res = self.layer4_1(x_l_cc_cvam)
         x_l_cc_res = self.adaptPool_1(x_l_cc_res)
+        # Flatten layer before this 
         x_l_cc_res = self.linear_1(x_l_cc_res)
 
         x_r_cc_res = self.layer4_2(x_r_cc_cvam)
@@ -223,7 +229,7 @@ class ResNet18_CVAM(nn.Module):
         return [x_l_cc_res, x_r_cc_res, x_l_mlo_res, x_r_mlo_res]
 
 if __name__ == "__main__":
-    x = torch.randn((3, 64, 512, 512))
+    x = torch.randn((3, 3, 512, 512))
     # bilinear = Bi_lateral_attention_module()
     # pred1 = bilinear(x, x, x, x)
     # # print("_______")
@@ -233,6 +239,7 @@ if __name__ == "__main__":
     # cvam = CvAM(x.shape[1])
     # pred = cvam(x, x, x, x)
     resnet_cvam = ResNet18_CVAM()
+    pred = resnet_cvam(x, x, x, x)
     # ytorch_total_params = sum(p.numel() for p in cvam.parameters())
     # print(ytorch_total_params)
 
