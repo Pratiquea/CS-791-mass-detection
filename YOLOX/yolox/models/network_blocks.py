@@ -4,6 +4,7 @@
 
 import torch
 import torch.nn as nn
+from .cvam import CvAM
 
 
 class SiLU(nn.Module):
@@ -185,6 +186,78 @@ class CSPLayer(nn.Module):
         return self.conv3(x)
 
 
+class CSPLayerCvAM(nn.Module):
+    """C3 in yolov5, CSP Bottleneck with 3 convolutions"""
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        n=1,
+        shortcut=True,
+        expansion=0.5,
+        depthwise=False,
+        act="silu",
+    ):
+        """
+        Args:
+            in_channels (int): input channels.
+            out_channels (int): output channels.
+            n (int): number of Bottlenecks. Default value: 1.
+        """
+        # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        hidden_channels = int(out_channels * expansion)  # hidden channels
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
+        self.conv2 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
+        self.conv3 = BaseConv(2 * hidden_channels, out_channels, 1, stride=1, act=act)
+        module_list = [
+            Bottleneck(
+                hidden_channels, hidden_channels, shortcut, 1.0, depthwise, act=act
+            )
+            for _ in range(n)
+        ]
+        self.m = nn.Sequential(*module_list)
+
+        # after conv1
+        self.cvam_1 = CvAM(hidden_channels)
+        # after conv2
+        self.cvam_2 = CvAM(hidden_channels)
+        # after conv3
+        self.cvam_3 = CvAM(out_channels)
+
+    def forward(self, x_l_cc, x_r_cc, x_l_mlo, x_r_mlo):
+        x_1_l_cc  = self.conv1(x_l_cc)
+        x_1_r_cc  = self.conv1(x_r_cc)
+        x_1_l_mlo = self.conv1(x_l_mlo)
+        x_1_r_mlo = self.conv1(x_r_mlo)
+
+        [x_1_l_cc, x_1_r_cc, x_1_l_mlo, x_1_r_mlo] = self.cvam_1(x_1_l_cc, x_1_r_cc, x_1_l_mlo, x_1_r_mlo)
+
+        x_2_l_cc  = self.conv2(x_l_cc)
+        x_2_r_cc  = self.conv2(x_r_cc)
+        x_2_l_mlo = self.conv2(x_l_mlo)
+        x_2_r_mlo = self.conv2(x_r_mlo)
+        
+        [x_2_l_cc, x_2_r_cc, x_2_l_mlo, x_2_r_mlo] = self.cvam_2(x_2_l_cc, x_2_r_cc, x_2_l_mlo, x_2_r_mlo)
+
+        x_1_l_cc = self.m(x_1_l_cc)
+        x_1_r_cc = self.m(x_1_r_cc)
+        x_1_l_mlo = self.m(x_1_l_mlo)
+        x_1_r_mlo = self.m(x_1_r_mlo)
+
+        x_l_cc = torch.cat((x_1_l_cc, x_2_l_cc), dim=1)
+        x_r_cc = torch.cat((x_1_r_cc, x_2_r_cc), dim=1)
+        x_l_mlo = torch.cat((x_1_l_mlo, x_2_l_mlo), dim=1)
+        x_r_mlo = torch.cat((x_1_r_mlo, x_2_r_mlo), dim=1)
+
+        x_l_cc = self.conv3(x_l_cc)
+        x_r_cc = self.conv3(x_r_cc)
+        x_l_mlo = self.conv3(x_l_mlo)
+        x_r_mlo = self.conv3(x_r_mlo)
+
+        return self.cvam_3(x_l_cc, x_r_cc, x_l_mlo, x_r_mlo)
+
 class Focus(nn.Module):
     """Focus width and height information into channel space."""
 
@@ -208,3 +281,9 @@ class Focus(nn.Module):
             dim=1,
         )
         return self.conv(x)
+
+
+# if __name__ == '__main__':
+    # x = torch.randn((4, 64, 512, 512))
+    # csp = CSPLayerCvAM(64, 64, n=3, depthwise=False, act="silu")
+    # csp(x, x, x, x)
