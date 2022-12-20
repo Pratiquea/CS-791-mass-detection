@@ -96,7 +96,11 @@ class COCOeval_opt(COCOeval):
             for imgId in p.imgIds
         ]
         ious = [[self.ious[imgId, catId] for catId in catIds] for imgId in p.imgIds]
-
+        # ious_np = copy.deepcopy(ious)
+        # ious_np = ious_np[ious_np!=0]
+        # print("self ious = {}".format(self.ious))
+        # print("\n\n##################\nious = {}".format(ious))
+        # print("np ious = {}".format(ious_np))
         if not p.useCats:
             # For each image, flatten per-category lists into a single list
             ground_truth_instances = [

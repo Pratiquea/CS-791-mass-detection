@@ -7,6 +7,7 @@ import os
 from yolox.exp import Exp as MyExp
 import torch.nn as nn
 
+
 class Exp(MyExp):
     def __init__(self):
         super(Exp, self).__init__()
@@ -31,7 +32,7 @@ class Exp(MyExp):
         # name of annotation file for training
         self.train_ann = "train.json"
         # name of annotation file for evaluation
-        self.val_ann = "test.json"
+        self.val_ann = "val.json"
         # name of annotation file for testing
         self.test_ann = "test.json"
 
@@ -97,22 +98,22 @@ class Exp(MyExp):
         # nms threshold
         self.nmsthre = 0.65
 
-    def get_model(self):
-        from yolox.models import YOLOXCvAM, YOLOPAFPNCvAM, YOLOXHead
+    # def get_model(self):
+    #     from yolox.models import YOLOXCvAM, YOLOPAFPNCvAM, YOLOXHead
 
-        def init_yolo(M):
-            for m in M.modules():
-                if isinstance(m, nn.BatchNorm2d):
-                    m.eps = 1e-3
-                    m.momentum = 0.03
+    #     def init_yolo(M):
+    #         for m in M.modules():
+    #             if isinstance(m, nn.BatchNorm2d):
+    #                 m.eps = 1e-3
+    #                 m.momentum = 0.03
 
-        if getattr(self, "model", None) is None:
-            in_channels = [256, 512, 1024]
-            backbone = YOLOPAFPNCvAM(self.depth, self.width, in_channels=in_channels, act=self.act)
-            head = YOLOXHead(self.num_classes, self.width, in_channels=in_channels, act=self.act)
-            self.model = YOLOXCvAM(backbone, head)
+    #     if getattr(self, "model", None) is None:
+    #         in_channels = [256, 512, 1024]
+    #         backbone = YOLOPAFPNCvAM(self.depth, self.width, in_channels=in_channels, act=self.act)
+    #         head = YOLOXHead(self.num_classes, self.width, in_channels=in_channels, act=self.act)
+    #         self.model = YOLOXCvAM(backbone, head)
 
-        self.model.apply(init_yolo)
-        self.model.head.initialize_biases(1e-2)
-        self.model.train()
-        return self.model
+    #     self.model.apply(init_yolo)
+    #     self.model.head.initialize_biases(1e-2)
+    #     self.model.train()
+    #     return self.model

@@ -39,9 +39,10 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45, class_agn
 
     output = [None for _ in range(len(prediction))]
     for i, image_pred in enumerate(prediction):
-
+        # print("preproc iter = {}".format(i))
         # If none are remaining => process next image
         if not image_pred.size(0):
+            # print("skip preprocessing for this img")
             continue
         # Get score and class with highest confidence
         class_conf, class_pred = torch.max(image_pred[:, 5: 5 + num_classes], 1, keepdim=True)

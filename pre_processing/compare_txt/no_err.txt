@@ -1,0 +1,4 @@
+{ "categories": [{"id": 0,"name": "mass"}], 
+"images": [
+    {"file_name":"89524e5f372d9aff8ed43b4ef29c1435/5a94dd668eaa9865b907450c37db6ecc_R_CC.png", "height": 2123, "width": 957, "id": 21482147, "patient": 89524101510237210099710210281011004398410110229991435}],
+    "annotations": [{"image_id": 21482147,                                 "bbox": [811, 1221, -151, 174], "patient": 89524101510237210099710210281011004398410110229991435, "id": 58262657, "iscrowd": 0, "area": -26274.0, "category_id": 0}] }

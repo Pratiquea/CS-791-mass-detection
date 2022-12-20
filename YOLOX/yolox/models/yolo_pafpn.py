@@ -221,9 +221,29 @@ class YOLOPAFPNCvAM(nn.Module):
         """
 
         #  backbone
-        out_features_l_cc,  out_features_r_cc, out_features_l_mlo, out_features_r_mlo = self.backbone(x_l_cc, x_r_cc, x_l_mlo, x_r_mlo)
-        features = [[out_features_l_cc[f], out_features_r_cc[f], out_features_l_mlo[f], out_features_r_mlo[f]] for f in self.in_features]
-        [x2, x1, x0] = features
+        # out_features_l_cc,  out_features_r_cc, out_features_l_mlo, out_features_r_mlo = self.backbone(x_l_cc, x_r_cc, x_l_mlo, x_r_mlo)
+        # features = [[out_features_l_cc[f], out_features_r_cc[f], out_features_l_mlo[f], out_features_r_mlo[f]] for f in self.in_features]
+        # [x2, x1, x0] = features
+        # [x2_l_cc, x2_r_cc, x2_l_mlo, x2_r_mlo] = x2
+        # [x1_l_cc, x1_r_cc, x1_l_mlo, x1_r_mlo] = x1
+        # [x0_l_cc, x0_r_cc, x0_l_mlo, x0_r_mlo] = x0
+
+        # outputs_l_cc = self.get_output_features(x2_l_cc, x1_l_cc, x0_l_cc)
+        # outputs_r_cc = self.get_output_features(x2_r_cc, x1_r_cc, x0_r_cc)
+        # outputs_l_mlo = self.get_output_features(x2_l_mlo, x1_l_mlo, x0_l_mlo)
+        # outputs_r_mlo = self.get_output_features(x2_r_mlo, x1_r_mlo, x0_r_mlo)
+        # outputs = (outputs_l_cc, outputs_r_cc, outputs_l_mlo, outputs_r_mlo)
+
+        # out_features = self.backbone(input)
+        # features = [out_features[f] for f in self.in_features]
+        # [x2, x1, x0] = features
+
+        # return outputs
+        out_features = self.backbone(x_l_cc, x_r_cc, x_l_mlo, x_r_mlo)
+        features = [out_features[f] for f in self.in_features]
+        [x2,x1,x0] = features
+
+        # print("outfeature type = {}".format(type(out_features)))
         [x2_l_cc, x2_r_cc, x2_l_mlo, x2_r_mlo] = x2
         [x1_l_cc, x1_r_cc, x1_l_mlo, x1_r_mlo] = x1
         [x0_l_cc, x0_r_cc, x0_l_mlo, x0_r_mlo] = x0

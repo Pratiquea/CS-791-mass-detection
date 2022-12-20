@@ -93,6 +93,8 @@ class YOLOXCvAM(nn.Module):
                 fpn_outs_r_mlo, targets_r_mlo, x_r_mlo )
             
 
+            total_loss_all_view = loss_l_cc + loss_r_cc + loss_l_mlo + loss_r_mlo
+
             outputs = {
                 "total_loss_l_cc": loss_l_cc,
                 "iou_loss_l_cc": iou_loss_l_cc,
@@ -118,6 +120,7 @@ class YOLOXCvAM(nn.Module):
                 "conf_loss_r_mlo": conf_loss_r_mlo,
                 "cls_loss_r_mlo": cls_loss_r_mlo,
                 "num_fg_r_mlo": num_fg_r_mlo,
+                "total_loss": total_loss_all_view
             }
         else:
             output_l_cc = self.head(fpn_outs_l_cc)

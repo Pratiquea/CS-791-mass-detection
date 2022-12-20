@@ -14,7 +14,7 @@ import subprocess
 from scipy.signal import argrelextrema, find_peaks
 import copy
 from django.utils.crypto import get_random_string
-
+import sys
 
 # Run command
 # python3 preprocessing.py -d ~/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/ -o ~/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/processed_imgs/
@@ -34,9 +34,11 @@ class PreProcessing:
         self.mass_folder_train = []
         self.mass_folder_test = []
         self.mass_folder_val = []
+        self.val_split = 0.2
 
     def gen_unique_id(self):
         u_id = get_random_string(8, allowed_chars='123456789')
+        u_id = int(u_id)
         if u_id in self.all_ids:
             self.gen_unique_id()
         else:
@@ -170,9 +172,21 @@ class PreProcessing:
     def run(self):
         print("\n")
 
-        json_categories = '{ "categories": [{"id": 0,"name": "mass"}],'
-        json_image = ' "images": ['
-        json_annotations = ' "annotations": ['
+        # json_categories_training = '{ "categories": [{"id": 0,"name": "mass"}],'
+        # json_image_training = ' "images": ['
+        # json_annotations_training = ' "annotations": ['
+        json_categories_training = { "categories": [{"id": 0,"name": "mass"}]}
+        json_image_training = []
+        json_annotations_training = []
+
+        json_categories_val = { "categories": [{"id": 0,"name": "mass"}]}
+        json_image_val = []
+        json_annotations_val = []
+
+        json_categories_test = { "categories": [{"id": 0,"name": "mass"}]}
+        json_image_test = []
+        json_annotations_test = []
+
         cmd = ["df", "/", "-h"]
 
         cate = 0
@@ -188,25 +202,39 @@ class PreProcessing:
                     mass = row[9]
                     type = row[-1]
                     if type == 'training':
-                        if 'Mass' in mass and folder not in self.mass_folder_train:
+                        if 'mass' in mass.lower() and folder not in self.mass_folder_train:
                             self.mass_folder_train.append(folder)
                     elif type == 'test':
-                        if 'Mass' in mass and folder not in self.mass_folder_test:
+                        if 'mass' in mass.lower() and folder not in self.mass_folder_test:
                             self.mass_folder_test.append(folder)
 
         size = len(self.mass_folder_train)
         i = 0
-        #rand = np.random.randint(0,size -1, size= round(size * 0.15))
+        rand = np.random.randint(0,size -1, size= (round(size * self.val_split) ,))
+        for ind_ in rand:
+            self.mass_folder_val.append(self.mass_folder_train[ind_])
+        for each in self.mass_folder_val:
+            if each in self.mass_folder_train:
+                self.mass_folder_train.remove(each)
+        # common = []
+        # for each in self.mass_folder_train:
+        #     if each in self.mass_folder_val:
+        #         common.append(each)
+        self.mass_folder_train = set(self.mass_folder_train)
+        self.mass_folder_test = set(self.mass_folder_test)
+        self.mass_folder_val = set(self.mass_folder_val)
+
         for folder in self.mass_folder_train:
+            os.makedirs(os.path.join(self.output_path, "training", folder))
 
-            os.mkdir(os.path.join(self.output_path, "training", folder))
-
-            os.mkdir(os.path.join(self.output_path, "val", folder))
+        for folder in self.mass_folder_val:
+            os.makedirs(os.path.join(self.output_path, "val", folder))
 
         for folder in self.mass_folder_test:
-            os.mkdir(os.path.join(self.output_path, "test", folder))
+            os.makedirs(os.path.join(self.output_path, "test", folder))
 
-
+        f.close()
+        # sys.exit(0)
         with open(self.csv_path, "r") as f, \
                 open(self.missing_img_txt, "w") as f2, \
                 open(self.processed_img_txt, "w") as f3, \
@@ -219,7 +247,7 @@ class PreProcessing:
                 # print(type(csv_reader))
                 for row in csv_reader:
 
-                    # if count > 3:
+                    # if count > 10:
                     #     break
                     # count += 1
                     # Check if there's enough space on the disk
@@ -380,7 +408,7 @@ class PreProcessing:
 
                         crop_after_ind = self.get_minima(edited_mask, False)
 
-                        if crop_after_ind is not None:
+                        if crop_after_ind is not None and len(bbox_coordinates)>0:
                             cropped_img = cropped_img[:crop_after_ind, :]
                             # if crop is before y coord of bbox, then flag image
                             if crop_after_ind < bbox_coordinates[3]:
@@ -454,55 +482,137 @@ class PreProcessing:
                         # cv2.waitKey(0)
                         # print(height)
                         # apparently, image_id can't have letter and numbers so...... gotta change each alphabet to its corresponding number
-                        # for letter in file_name:
-                        #     if not letter.isdigit():
-                        #         file_name = file_name.replace(str(letter), str(ord(letter)))
+                        for letter in folder_name:
+                            if not letter.isdigit():
+                                folder_name = folder_name.replace(str(letter), str(ord(letter)))
                         unique_img_id = self.gen_unique_id()
                         unique_id = self.gen_unique_id()
                         print("unique_img_id = {}".format(unique_img_id))
                         print("\n")
-                        json_image += '{"file_name":"' + new_file_name + '", "height": ' + str(
-                            height) + ', "width": ' + str(width) + ', "id": ' + str(unique_img_id) + '},'
-                        json_annotations += '{"image_id": ' + str(unique_img_id) + ', \
-                            "bbox": ' + str(bbox_coordinates) + \
-                                            ', "id": ' + str(unique_id) + \
-                                            ', "iscrowd": ' + str(0) + \
-                                            ', "area": ' + str(float(bbox_coordinates[2]) * float(bbox_coordinates[3])) + \
-                                            ', "category_id": ' + str(cate) + '},'
+                        if dataset_type_ == 'training':
+                            entry = {"file_name": new_file_name,"height": height, "width": width, "id": unique_img_id, "patient_id": folder_name}
+                            json_image_training.append(entry)
+                            # json_image_training += '{"file_name":"' + new_file_name + '", "height": ' + str(
+                            #     height) + ', "width": ' + str(width) + ', "id": ' + str(unique_img_id) + ', "patient_id": '+ str(folder_name) + '},'
+
+                            area = 1
+                            if len(bbox_coordinates)>0:
+                                area = float(bbox_coordinates[2]) * float(bbox_coordinates[3])
+
+                            entry_ann = {"image_id": unique_img_id, \
+                                         "bbox": bbox_coordinates, \
+                                         "patient_id": folder_name, \
+                                         "id": unique_id , \
+                                         "iscrowd": 0, \
+                                         "area": area, \
+                                         "category_id": cate}
+                            json_annotations_training.append(entry_ann)
+                            # json_annotations_training += '{"image_id": ' + str(unique_img_id) + ', \
+                            #     "bbox": ' + str(bbox_coordinates) + \
+                            #                     ', "patient_id": ' + str(folder_name) + \
+                            #                     ', "id": ' + str(unique_id) + \
+                            #                     ', "iscrowd": ' + str(0) + \
+                            #                     ', "area": ' + str(area) + \
+                            #                     ', "category_id": ' + str(cate) + '},'
+                        elif dataset_type_ == 'val':
+                            entry = {"file_name": new_file_name,"height": height, "width": width, "id": unique_img_id, "patient_id": folder_name}
+                            json_image_val.append(entry)
+
+                            area = 1
+                            if len(bbox_coordinates)>0:
+                                area = float(bbox_coordinates[2]) * float(bbox_coordinates[3])
+                            
+                            entry_ann = {"image_id": unique_img_id, \
+                                         "bbox": bbox_coordinates, \
+                                         "patient_id": folder_name, \
+                                         "id": unique_id , \
+                                         "iscrowd": 0, \
+                                         "area": area, \
+                                         "category_id": cate}
+                            json_annotations_val.append(entry_ann)
+
+                        elif dataset_type_ == 'test':
+                            entry = {"file_name": new_file_name,"height": height, "width": width, "id": unique_img_id, "patient_id": folder_name}
+                            json_image_test.append(entry)
+
+                            area = 1
+                            if len(bbox_coordinates)>0:
+                                area = float(bbox_coordinates[2]) * float(bbox_coordinates[3])
+
+                            entry_ann = {"image_id": unique_img_id, \
+                                         "bbox": bbox_coordinates, \
+                                         "patient_id": folder_name, \
+                                         "id": unique_id , \
+                                         "iscrowd": 0, \
+                                         "area": area, \
+                                         "category_id": cate}
+                            json_annotations_test.append(entry_ann)
 
         f.close()
         f2.close()
         f3.close()
         f4.close()
 
-        json_image = json_image[:-1]
-        json_image += '],'
-        json_annotations = json_annotations[:-1]
-        json_annotations += '] }'
+        # json_image_training = json_image_training[:-1]
+        # json_image_training += '],'
+        # json_annotations_training = json_annotations_training[:-1]
+        # json_annotations_training += '] }'
+        json_image_training = {"images": json_image_training}
+        json_annotations_training = {"annotations": json_annotations_training}
+
+        json_image_val = {"images": json_image_val}
+        json_annotations_val = {"annotations": json_annotations_val}
+
+        json_image_test = {"images": json_image_test}
+        json_annotations_test = {"annotations": json_annotations_test}
+
+        # json_image_test = json_image_test[:-1]
+        # json_image_test += '],'
+        # json_annotations_test = json_annotations_test[:-1]
+        # json_annotations_test += '] }'
+
+        # json_image_val = json_image_val[:-1]
+        # json_image_val += '],'
+        # json_annotations_val = json_annotations_val[:-1]
+        # json_annotations_val += '] }'
         # print(json_image)
         # print(json_annotations)
         # print(i)
-        json_everything = json_categories + json_image + json_annotations
-        # print(json_everything)
-        np.save(os.path.join(self.output_path, 'json_everything.npy'), json_everything)
-        json_object = json.loads(json_everything)
-        # Writing to sample.json
-        with open("sample.json", "w") as outfile:
-            outfile.write(json_everything)
+        json_everything_training = {**json_categories_training, **json_image_training, **json_annotations_training}
+        json_everything_val = {**json_categories_val, **json_image_val, **json_annotations_val}
+        json_everything_test = {**json_categories_test, **json_image_test, **json_annotations_test}
+        
+        # print(json_everything_training)
+        np.save(os.path.join(self.output_path, 'json_everything_training.npy'), json_everything_training)
+        np.save(os.path.join(self.output_path, 'json_everything_test.npy'), json_everything_test)
+        np.save(os.path.join(self.output_path, 'json_everything_val.npy'), json_everything_val)
 
+        # json_object_training = json.loads(json.dumps(json_everything_training))
+        # json_object_test = json.loads(json_everything_test)
+        # json_object_val = json.loads(json_everything_val)
+        # Writing to sample.json
+        with open("train_cvam.json", "w") as outfile1:
+            outfile1.write(json.dumps(json_everything_training))
+
+        with open("val_cvam.json", "w") as outfile2:
+            outfile2.write(json.dumps(json_everything_val))
+
+        with open("tests_cvam.json", "w") as outfile3:
+            outfile3.write(json.dumps(json_everything_test))
+        
 
 
 def main():
     parser = argparse.ArgumentParser(description="Image pre-processing for VinDr Mammo dataset")
     parser.add_argument("-l", "--csv_path", type=str, default="./finding_annotations.csv", help="Path to csv file")
-    parser.add_argument("-d", "--dataset_path", type=str, default="./Mammo/", help="Path to dataset")
-    parser.add_argument("-t", "--missing_img_txt", type=str, default="./missing_images.txt",
+    parser.add_argument("-d", "--dataset_path", type=str, default="/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/images/", help="Path to dataset")
+    parser.add_argument("-t", "--missing_img_txt", type=str, default="./missing_images_cvam.txt",
                         help="Path to text file to store path of images that were not found")
-    parser.add_argument("-i", "--processing_issue_img_txt", type=str, default="./processing_issue_img_txt.txt",
+    parser.add_argument("-i", "--processing_issue_img_txt", type=str, default="./processing_issue_img_txt_cvam.txt",
                         help="Path to text file to store path of images that have some issue during processing")
-    parser.add_argument("-p", "--processed_img_txt", type=str, default="./processed_images.txt",
+    parser.add_argument("-p", "--processed_img_txt", type=str, default="./processed_images_cvam.txt",
                         help="Path to text file to store path of processed images")
-    parser.add_argument("-o", "--output_path", type=str, default="./Pre_processed_data/",
+    parser.add_argument("-o", "--output_path", type=str, default="/home/rwl/Downloads/Dataset/physionet.org/files/vindr-mammo/1.0.0/processed_imgs_cvam/",
                         help="Path to output directory")
     parser.add_argument("-dt", "--dataset_type", type=str, default="training", choices=['training', 'test'],
                         help="testing or training")
